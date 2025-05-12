@@ -48,7 +48,7 @@ class MatchModel extends Model
 
     public function innings()
     {
-        return $this->hasMany(Inning::class);
+        return $this->hasMany(Inning::class,'match_id');
     }
 
     // You can add any custom methods needed for handling specific logic (like match status)
