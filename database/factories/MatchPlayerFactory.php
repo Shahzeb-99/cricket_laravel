@@ -16,7 +16,7 @@ class MatchPlayerFactory extends Factory
     public function definition(): array
     {
         return [
-            'match_id' => MatchModel::factory(),
+            'match_id' => MatchModelFactory::new()->create()->id,
             'player_id' => Player::factory(),
             'team_id' => Team::factory(),
             'role' => $this->faker->randomElement(['player', 'captain', 'vice_captain']),

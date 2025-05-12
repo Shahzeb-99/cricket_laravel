@@ -7,7 +7,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Carbon;
 
-class MatchFactory extends Factory
+class MatchModelFactory extends Factory
 {
     protected $model = MatchModel::class;
 
