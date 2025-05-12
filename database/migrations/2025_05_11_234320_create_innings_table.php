@@ -9,7 +9,7 @@ return new class extends Migration {
     {
         Schema::create('innings', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->foreignId('match_id')->constrained()->onDelete('cascade');
+            $table->foreignId('match_id')->constrained('matches')->onDelete('cascade'); // match_id to matches table
             $table->foreignId('batting_team_id')->constrained('teams')->onDelete('cascade');
             $table->foreignId('bowling_team_id')->constrained('teams')->onDelete('cascade');
             $table->unsignedTinyInteger('inning_number'); // 1, 2, 3, 4...
