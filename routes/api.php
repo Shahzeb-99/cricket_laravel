@@ -33,7 +33,7 @@ Route::prefix('auth')->group(function () {
 // User profile management (protected)
 Route::prefix('user')->middleware('auth:sanctum')->group(function () {
     Route::get('/', [UserController::class, 'show']);             // GET /user
-    Route::post('/', [UserController::class, 'update']);           // PUT /user
+    Route::post('/', [UserController::class, 'update']);           // POST /user
     Route::put('/password', [UserController::class, 'updatePassword']); // PUT /user/password
     Route::delete('/', [UserController::class, 'destroy']);       // DELETE /user
 });
