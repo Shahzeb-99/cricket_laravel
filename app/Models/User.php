@@ -7,11 +7,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasApiTokens;
 
     /**
      * The attributes that are mass assignable.
@@ -57,4 +58,38 @@ class User extends Authenticatable
             ->map(fn (string $name) => Str::of($name)->substr(0, 1))
             ->implode('');
     }
+
+    /**
+     * Get the teams created by the user.
+     */
+    public function createdTeams()
+    {
+        return $this->hasMany(Team::class, 'created_by');
+    }
+
+    /**
+     * Get the matches created by the user.
+     */
+    public function createdMatches()
+    {
+        return $this->hasMany(MatchModel::class, 'created_by');
+    }
+
+    /**
+     * Get the match permissions associated with the user.
+     */
+    public function matchPermissions()
+    {
+        return $this->hasMany(MatchPermission::class);
+    }
+
+    /**
+     * Get the events associated with the user.
+     */
+    public function events()
+    {
+        return $this->hasMany(Event::class);
+    }
+
+
 }
