@@ -25,7 +25,9 @@ class UserController extends Controller
      */
     public function update(UpdateProfileRequest $request): JsonResponse
     {
-        \Log::info('Request Data:', $request->only(['name', 'email']));
+        if (app()->environment('local', 'staging')) {
+            \Log::info('Request Data:', $request->only(['name', 'email']));
+        }
 // Log the request data to check if the fields are there
 
 
