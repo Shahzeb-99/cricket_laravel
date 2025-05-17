@@ -18,6 +18,7 @@ class Player extends Model
         'date_of_birth',
         'status',
         'team_id',
+        'user_id',
     ];
 
     // Define the relationship with the Team model
