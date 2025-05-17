@@ -2,61 +2,94 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\PlayerRequest;
-use App\Http\Resources\PlayerResource;
+use App\Http\Requests\Player\PlayerRequest;
+use App\Http\Requests\Player\UpdatePlayerRequest;
 use App\Models\Player;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Auth\Access\AuthorizationException;
 
 class PlayerController extends Controller
 {
     use AuthorizesRequests;
-    public function index()
+
+    protected function successResponse($data, string $message = ''): JsonResponse
     {
-        // Return a paginated collection of players
-        return PlayerResource::collection(Player::paginate(10));
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'data' => $data,
+        ]);
     }
 
-    public function show($id)
+    protected function errorResponse(string $message, int $statusCode = 400): JsonResponse
     {
-        // Return a single player
-        $player = Player::findOrFail($id);
-        return new PlayerResource($player);
+        return response()->json([
+            'success' => false,
+            'message' => $message,
+        ], $statusCode);
+    }
+
+    public function profile()
+    {
+        $user = auth()->user();
+        $player = Player::with('team')->where('user_id', $user->id)->first();
+
+        if (!$player) {
+            return $this->errorResponse('Player profile not found', 404);
+        }
+
+        $this->authorize('view', $player);
+
+        return $this->successResponse($player, 'Player profile retrieved successfully');
     }
 
     public function store(PlayerRequest $request)
     {
-        // Validate the incoming request
-        $validated = $request->validated();
+        $user = auth()->user();
 
-        // Create the player record
-        $player = Player::create($validated);
+        try {
+            $this->authorize('create', Player::class);
+        } catch (AuthorizationException $e) {
+            return $this->errorResponse('You already have a player profile.', 403);
+        }
 
-        // Return the newly created player as a resource
-        return new PlayerResource($player);
+        $data = $request->validated();
+
+        $player = Player::create($data);
+
+        return $this->successResponse($player, 'Player profile created successfully');
     }
 
-    public function update(PlayerRequest $request, $id)
+    public function update(UpdatePlayerRequest $request)
     {
-        // Validate the incoming request
-        $validated = $request->validated();
+        $user = auth()->user();
+        $player = Player::where('user_id', $user->id)->first();
 
-        // Find the player
-        $player = Player::findOrFail($id);
+        if (!$player) {
+            return $this->errorResponse('Player profile not found', 404);
+        }
 
-        // Update the player record
-        $player->update($validated);
+        $this->authorize('update', $player);
 
-        // Return the updated player as a resource
-        return new PlayerResource($player);
+        $player->update($request->validated());
+
+        return $this->successResponse($player, 'Player profile updated successfully');
     }
 
-    public function destroy($id)
+    public function destroy()
     {
-        // Find and delete the player
-        $player = Player::findOrFail($id);
+        $user = auth()->user();
+        $player = Player::where('user_id', $user->id)->first();
+
+        if (!$player) {
+            return $this->errorResponse('Player profile not found', 404);
+        }
+
+        $this->authorize('delete', $player);
+
         $player->delete();
 
-        // Return a success response
-        return response()->json(['message' => 'Player deleted successfully']   );
+        return $this->successResponse(null, 'Player profile deleted successfully');
     }
 }
