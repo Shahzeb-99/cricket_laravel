@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Player\PlayerRequest;
 use App\Http\Requests\Player\UpdatePlayerRequest;
+use App\Http\Resources\PlayerResource;
 use App\Models\Player;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
@@ -33,7 +34,7 @@ class PlayerController extends Controller
     public function profile()
     {
         $user = auth()->user();
-        $player = Player::with('team')->where('user_id', $user->id)->first();
+        $player = Player::with(['team', 'user'])->where('user_id', $user->id)->first();
 
         if (!$player) {
             return $this->errorResponse('Player profile not found', 404);
@@ -41,7 +42,7 @@ class PlayerController extends Controller
 
         $this->authorize('view', $player);
 
-        return $this->successResponse($player, 'Player profile retrieved successfully');
+        return $this->successResponse(new PlayerResource($player), 'Player profile retrieved successfully');
     }
 
     public function store(PlayerRequest $request)
@@ -58,8 +59,11 @@ class PlayerController extends Controller
 
         $player = Player::create($data);
 
-        return $this->successResponse($player, 'Player profile created successfully');
+        $player->load(['user', 'team']);
+
+        return $this->successResponse(new PlayerResource($player), 'Player profile created successfully');
     }
+
 
     public function update(UpdatePlayerRequest $request)
     {
@@ -74,7 +78,10 @@ class PlayerController extends Controller
 
         $player->update($request->validated());
 
-        return $this->successResponse($player, 'Player profile updated successfully');
+        // Eager load relationships for the resource
+        $player->load(['user', 'team']);
+
+        return $this->successResponse(new PlayerResource($player), 'Player profile updated successfully');
     }
 
     public function destroy()
