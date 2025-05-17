@@ -16,7 +16,8 @@ return new class extends Migration {
             $table->enum('role', ['batsman', 'bowler', 'all-rounder', 'wicketkeeper']);
             $table->date('date_of_birth');
             $table->string('status', 20)->default('active');  // ['active', 'inactive', 'suspended']
-            $table->foreignId('team_id')->constrained('teams')->onDelete('cascade'); // Foreign key for team
+            $table->foreignId('team_id')->nullable()->constrained('teams')->onDelete('cascade'); // Foreign key for team
+            $table->foreignId('user_id')->nullable()->unique()->constrained()->onDelete('cascade');
             $table->timestamps();
         });
     }
