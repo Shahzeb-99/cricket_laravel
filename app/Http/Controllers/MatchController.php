@@ -40,6 +40,34 @@ class MatchController extends Controller
 
             $match = MatchModel::create($data);
 
+            // Create Team A and Team B
+            $teamA = Team::create([
+                'name' => 'Team A',
+                'created_by' => $match->created_by,
+            ]);
+            $teamB = Team::create([
+                'name' => 'Team B',
+                'created_by' => $match->created_by,
+            ]);
+
+            // Associate teams to the match with roles
+            MatchTeam::create([
+                'match_id' => $match->id,
+                'team_id' => $teamA->id,
+                'team_role' => 'team_a',
+            ]);
+            MatchTeam::create([
+                'match_id' => $match->id,
+                'team_id' => $teamB->id,
+                'team_role' => 'team_b',
+            ]);
+
+            MatchPlayer::firstOrCreate([
+                'match_id' => $match->id,
+                'player_id' => $match->created_by,
+                'team_id' => $teamA->id,
+            ]);
+
             return $this->successResponse(new MatchResource($match), 'Match created successfully.');
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage(), 500);
