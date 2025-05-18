@@ -5,48 +5,156 @@ namespace App\Http\Controllers;
 use App\Http\Requests\MatchRequest;
 use App\Http\Resources\MatchResource;
 use App\Models\MatchModel;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use App\Models\MatchPermission;
+use App\Models\Team;
+use App\Models\Player;
+use App\Models\MatchPlayer;
+use App\Models\MatchTeam;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class MatchController extends Controller
 {
-    use AuthorizesRequests;
-
-    public function index()
+    protected function successResponse($data, string $message = ''): \Illuminate\Http\JsonResponse
     {
-        $this->authorize('viewAny', MatchModel::class);
-
-        return MatchResource::collection(MatchModel::all());
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'data' => $data,
+        ]);
     }
 
-    public function store(MatchRequest $request)
+    protected function errorResponse(string $message, int $statusCode = 400): \Illuminate\Http\JsonResponse
     {
-        $this->authorize('create', MatchModel::class);
-
-        return new MatchResource(MatchModel::create($request->validated()));
+        return response()->json([
+            'success' => false,
+            'message' => $message,
+        ], $statusCode);
     }
 
-    public function show(MatchModel $match)
+    public function create(MatchRequest $request)
     {
-        $this->authorize('view', $match);
+        try {
+            $data = $request->validated();
 
-        return new MatchResource($match);
+            $match = MatchModel::create($data);
+
+            return $this->successResponse(new MatchResource($match), 'Match created successfully.');
+        } catch (\Exception $e) {
+            return $this->errorResponse($e->getMessage(), 500);
+        }
     }
 
-    public function update(MatchRequest $request, MatchModel $match)
+    /**
+     * Join match using code
+     */
+    public function join(Request $request)
     {
-        $this->authorize('update', $match);
+        $request->validate([
+            'match_id' => 'required|exists:matches,id'
+        ]);
 
-        $match->update($request->validated());
+        $match = MatchModel::find($request->match_id);
 
-        return new MatchResource($match);
+        if (!$match) {
+            return $this->errorResponse('Match not found.', 404);
+        }
+
+        $player = Player::firstOrCreate([
+            'user_id' => Auth::id(),
+        ]);
+
+        MatchPlayer::firstOrCreate([
+            'match_id' => $match->id,
+            'player_id' => $player->id,
+        ]);
+
+        return $this->successResponse(null, 'Joined match successfully.');
     }
 
-    public function destroy(MatchModel $match)
+    /**
+     * Assign player to a team in a match
+     */
+    public function assignPlayerTeam(Request $request)
     {
-        $this->authorize('delete', $match);
+        $request->validate([
+            'match_player_id' => 'required|exists:match_players,id',
+            'team_id' => 'required|exists:teams,id'
+        ]);
 
-        $match->delete();
+        $matchPlayer = MatchPlayer::findOrFail($request->match_player_id);
+        $matchPlayer->team_id = $request->team_id;
+        $matchPlayer->save();
 
-        return response()->json();
+        return response()->json(['message' => 'Team assignment updated.']);
+    }
+
+    /**
+     * Start match (set batting and bowling teams, opening players)
+     */
+    public function start(Request $request, $matchId)
+    {
+        $request->validate([
+            'batting_team_id' => 'required|exists:teams,id',
+            'bowling_team_id' => 'required|exists:teams,id|different:batting_team_id',
+            'striker_id' => 'required|exists:players,id',
+            'non_striker_id' => 'required|exists:players,id|different:striker_id',
+            'bowler_id' => 'required|exists:players,id',
+        ]);
+
+        $match = MatchModel::findOrFail($matchId);
+        $match->status = 'started';
+        $match->save();
+
+        // Create an innings entry
+        $innings = $match->innings()->create([
+            'batting_team_id' => $request->batting_team_id,
+            'bowling_team_id' => $request->bowling_team_id,
+            'inning_number' => 1,
+            'is_completed' => false,
+        ]);
+
+        $match->liveState()->updateOrCreate(
+            ['match_id' => $match->id],
+            [
+                'current_innings' => $innings->id,
+                'striker_id' => $request->striker_id,
+                'non_striker_id' => $request->non_striker_id,
+                'bowler_id' => $request->bowler_id,
+                'current_over' => 1,
+                'current_ball' => 1,
+                'total_runs' => 0,
+                'total_wickets' => 0,
+                'overs_completed' => 0.0,
+                'last_updated' => now(),
+            ]
+        );
+
+        return response()->json(['message' => 'Match started.']);
+    }
+
+    /**
+     * Assign umpire permission
+     */
+    public function assignUmpire(Request $request)
+    {
+        $request->validate([
+            'match_id' => 'required|exists:matches,id',
+            'user_id' => 'required|exists:users,id',
+            'can_edit' => 'boolean',
+            'can_delete' => 'boolean',
+        ]);
+
+        $permission = MatchPermission::updateOrCreate(
+            ['match_id' => $request->match_id, 'user_id' => $request->user_id],
+            [
+                'role' => 'umpire',
+                'can_edit' => $request->can_edit ?? true,
+                'can_delete' => $request->can_delete ?? false,
+            ]
+        );
+
+        return response()->json(['message' => 'Umpire access granted.']);
     }
 }
