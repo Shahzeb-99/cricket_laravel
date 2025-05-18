@@ -11,7 +11,7 @@ return new class extends Migration {
             $table->bigIncrements('id');
             $table->foreignId('match_id')->constrained('matches')->onDelete('cascade');
             $table->foreignId('player_id')->constrained('players')->onDelete('cascade');
-            $table->foreignId('team_id')->constrained('teams')->onDelete('cascade'); // Team the player played for in this match
+            $table->foreignId('team_id')->nullable()->constrained('teams')->onDelete('cascade'); // Team the player played for in this match
             $table->enum('role', ['player', 'captain', 'vice_captain'])->default('player');
             $table->timestamps();
 
