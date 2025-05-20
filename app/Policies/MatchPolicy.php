@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\MatchModel;
+use App\Models\MatchPlayer;
 use App\Models\User;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
@@ -37,5 +38,12 @@ class MatchPolicy
 
     public function forceDelete(User $user, MatchModel $match): bool
     {
+    }
+
+    public function assignTeam(User $user, MatchPlayer $matchPlayer): bool
+    {
+        $match = $matchPlayer->match;
+
+        return $user->id === $match->created_by || $user->id === $matchPlayer->player()->user_id;
     }
 }

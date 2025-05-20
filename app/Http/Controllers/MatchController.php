@@ -10,13 +10,18 @@ use App\Models\Team;
 use App\Models\Player;
 use App\Models\MatchPlayer;
 use App\Models\MatchTeam;
+use Exception;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class MatchController extends Controller
 {
-    protected function successResponse($data, string $message = ''): \Illuminate\Http\JsonResponse
+
+    use AuthorizesRequests;
+    protected function successResponse($data, string $message = ''): JsonResponse
     {
         return response()->json([
             'success' => true,
@@ -25,7 +30,7 @@ class MatchController extends Controller
         ]);
     }
 
-    protected function errorResponse(string $message, int $statusCode = 400): \Illuminate\Http\JsonResponse
+    protected function errorResponse(string $message, int $statusCode = 400): JsonResponse
     {
         return response()->json([
             'success' => false,
@@ -69,7 +74,7 @@ class MatchController extends Controller
             ]);
 
             return $this->successResponse(new MatchResource($match), 'Match created successfully.');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return $this->errorResponse($e->getMessage(), 500);
         }
     }
@@ -111,7 +116,12 @@ class MatchController extends Controller
             'team_id' => 'required|exists:teams,id'
         ]);
 
-        $matchPlayer = MatchPlayer::findOrFail($request->match_player_id);
+        $matchPlayer = MatchPlayer::with('match')->findOrFail($request->match_player_id);
+
+        // 🔐 Authorization check
+        $this->authorize('assignTeam', $matchPlayer);
+
+        // ✅ Proceed if authorized
         $matchPlayer->team_id = $request->team_id;
         $matchPlayer->save();
 
