@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\PlayerJoinedMatch;
 use App\Http\Requests\MatchRequest;
 use App\Http\Resources\MatchResource;
 use App\Models\MatchModel;
@@ -102,6 +103,10 @@ class MatchController extends Controller
             'match_id' => $match->id,
             'player_id' => $player->id,
         ]);
+
+
+        broadcast(new PlayerJoinedMatch($match->id, $player));
+
 
         return $this->successResponse(null, 'Joined match successfully.');
     }
