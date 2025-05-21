@@ -4,6 +4,7 @@ use App\Events\MessageSent;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\MatchController;
 use App\Http\Controllers\PlayerController;
+use App\Http\Controllers\TeamController;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -56,3 +57,14 @@ Route::prefix('match')->middleware('auth:sanctum')->group(function () {
     Route::post('/start/{matchId}', [MatchController::class, 'start']); // Start a match
     Route::post('/assign-umpire', [MatchController::class, 'assignUmpire']); // Assign umpire
 });
+
+// Team management (protected)
+Route::prefix('team')->middleware('auth:sanctum')->group(function () {
+    Route::get('/', [TeamController::class, 'index']);         // List all teams
+    Route::post('/', [TeamController::class, 'store']);        // Create a team
+    Route::get('/{id}', [TeamController::class, 'show']);      // Show a team
+    Route::put('/{id}', [TeamController::class, 'update']);    // Update a team
+    Route::patch('/{id}', [TeamController::class, 'update']);  // Partial update
+    Route::delete('/{id}', [TeamController::class, 'destroy']); // Delete a team
+});
+
